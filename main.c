@@ -1,18 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <pthread.h>
 
 #define RESO  400 // detail
-#define MAX_ITERATION 2000
+#define MAX_ITERATION 1000
+
+#define CORENUM 16
 
 int main () {
 	double y_min = -1.12, y_max = 1.12; 
 	double x_min = -2, x_max = 0.5;
-//	double y_min = -0.0017393, y_max = -0.0017386; 
-//	double x_min = -1.768779, x_max = -1.768778;
+
 	double x_diff = fabs(x_min - x_max);
 	double y_diff = fabs(y_min - y_max);
+
 	printf("x_diff = %e, y_diff = %e\n", x_diff, y_diff);
+
 	int b = (x_diff * RESO); // MAX
 	int a = (y_diff * RESO); // IMUMA
 
@@ -31,26 +35,50 @@ int main () {
 			image[x][y] = malloc(3 * sizeof(char));
 		}
 	}
-	for (int j = 0; j < a; ++j) {
-		for (int i = 0; i < b; ++i) {
-			int iteration = 0;
-			double x = 0.0;
-			double y = 0.0;
 
-			while (powf(x,2) + powf(y,2) <= 4 && iteration < MAX_ITERATION) {
-				double xtemp;
-				xtemp = powf(x,2) - powf(y,2) + normalize_x(i,b,x_min,x_max);
-				y = 2*x*y + normalize_y(j,a,y_min,y_max);
-				x = xtemp;
-			    iteration = iteration + 1;
+	typedef struct{
+		int tid;
+		int a;
+	}t_arg;
+
+	t_arg argumenti = {0, a};
+
+	void *draw_t (void* arg) { 
+		t_arg* argumenti = (t_arg*) arg;
+		int j_bound = argumenti->a/CORENUM + argumenti->tid * argumenti->a/CORENUM; // razdeli sliko med threade
+		for (int j = 0; j < j_bound; ++j) {
+			for (int i = 0; i < b; ++i) {
+				int iteration = 0;
+				double x = 0.0;
+				double y = 0.0;
+	
+				while (powf(x,2) + powf(y,2) <= 4 && iteration < MAX_ITERATION) {
+					double xtemp;
+					xtemp = powf(x,2) - powf(y,2) + normalize_x(i,b,x_min,x_max);
+					y = 2*x*y + normalize_y(j,a,y_min,y_max);
+					x = xtemp;
+				    iteration = iteration + 1;
+				}
+				double sir = 69;
+				image[j][i][2] = (((double)iteration/sir))*255; 
 			}
-			double sir = 69;
-			image[j][i][2] = (((double)iteration/sir))*255; 
 		}
-		printf("\r%0.1f%% done", (double)j/(double)a*100);
+		return NULL;
 	}
-	printf("\n");
-/* print image */
+
+	pthread_t threads[CORENUM];
+
+	for (int t=0; t < CORENUM; t++) {
+			argumenti.tid = t;
+		    pthread_create(&threads[t], NULL, draw_t, &argumenti);
+	}	
+
+	for (int t=0; t < CORENUM; t++) {
+		    pthread_join(threads[t], NULL);
+	}	
+
+	
+	/* print image */
 	for (int j = 0; j < a; ++j) {
 		for (int i = 0; i < b; ++i) {
 				(void) fwrite(image[j][i], 1, 3, fp);
@@ -59,3 +87,6 @@ int main () {
 	(void) fclose(fp);
 	return 0;
 }
+//		printf("\r%0.1f%% done", (double)j/(double)a*100);
+//	double y_min = -0.0017393, y_max = -0.0017386; 
+//	double x_min = -1.768779, x_max = -1.768778;
