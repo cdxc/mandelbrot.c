@@ -2,24 +2,26 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define RESO  1000 // detail
-
-
-#define MAX_ITERATION 1000
+#define RESO  400 // detail
+#define MAX_ITERATION 2000
 
 int main () {
-	float y_min = -1.12, y_max = 1.12;
-	float x_min = -2, x_max = 0.5;
+	double y_min = -1.12, y_max = 1.12; 
+	double x_min = -2, x_max = 0.5;
+//	double y_min = -0.0017393, y_max = -0.0017386; 
+//	double x_min = -1.768779, x_max = -1.768778;
+	double x_diff = fabs(x_min - x_max);
+	double y_diff = fabs(y_min - y_max);
+	printf("x_diff = %e, y_diff = %e\n", x_diff, y_diff);
+	int b = (x_diff * RESO); // MAX
+	int a = (y_diff * RESO); // IMUMA
 
-	int b = fabs(x_min-x_max) * RESO; // MAX
-	int a = fabs(y_min-y_max) * RESO;	// IMUMA
-
-	float normalize_x(int i, int width, float x_min, float x_max) {return x_min + (i / (float)width) * (x_max - x_min);}
-	float normalize_y(int j, int height, float y_min, float y_max) {return y_min + (j / (float)height) * (y_max - y_min);}	
+	double normalize_x(int i, int width, double x_min, double x_max) {return x_min + (i / (double)width) * (x_max - x_min);}
+	double normalize_y(int j, int height, double y_min, double y_max) {return y_min + (j / (double)height) * (y_max - y_min);}	
 
 	printf("a: %d\tb: %d\n",a,b);
 
-	FILE *fp = fopen("slika.ppm", "wb");
+	FILE *fp = fopen("output.ppm", "wb");
 	(void) fprintf(fp, "P6\n%d %d\n255\n", b,a);
 
 	char ***image = malloc(a * sizeof(char **));
@@ -32,21 +34,20 @@ int main () {
 	for (int j = 0; j < a; ++j) {
 		for (int i = 0; i < b; ++i) {
 			int iteration = 0;
-			float x = 0.0;
-			float y = 0.0;
+			double x = 0.0;
+			double y = 0.0;
 
 			while (powf(x,2) + powf(y,2) <= 4 && iteration < MAX_ITERATION) {
-				float xtemp;
+				double xtemp;
 				xtemp = powf(x,2) - powf(y,2) + normalize_x(i,b,x_min,x_max);
 				y = 2*x*y + normalize_y(j,a,y_min,y_max);
 				x = xtemp;
 			    iteration = iteration + 1;
 			}
-			float sir = 100;
-			image[j][i][2] = (sin((float)iteration/sir)+1)*255; 
-
+			double sir = 69;
+			image[j][i][2] = (((double)iteration/sir))*255; 
 		}
-		printf("\r%0.1f%% done", (float)j/(float)a*100);
+		printf("\r%0.1f%% done", (double)j/(double)a*100);
 	}
 	printf("\n");
 /* print image */
