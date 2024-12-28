@@ -6,11 +6,11 @@
 #define RESO  400 // detail
 #define MAX_ITERATION 1000
 
-#define CORENUM 16
+#define CORENUM 256 
 
 int main () {
-	double y_min = -1.12, y_max = 1.12; 
-	double x_min = -2, x_max = 0.5;
+	double y_min = 0, y_max = 1.12; 
+	double x_min = -5, x_max = 0.5;
 
 	double x_diff = fabs(x_min - x_max);
 	double y_diff = fabs(y_min - y_max);
@@ -41,12 +41,15 @@ int main () {
 		int a;
 	}t_arg;
 
-	t_arg argumenti = {0, a};
-
 	void *draw_t (void* arg) { 
 		t_arg* argumenti = (t_arg*) arg;
-		int j_bound = argumenti->a/CORENUM + argumenti->tid * argumenti->a/CORENUM; // razdeli sliko med threade
-		for (int j = 0; j < j_bound; ++j) {
+		int start_j = argumenti->tid * (argumenti->a / CORENUM);
+		int end_j = (argumenti->tid + 1) * (argumenti->a / CORENUM);
+
+		if (argumenti->tid == CORENUM - 1) 
+    	    end_j = argumenti->a;
+
+		for (int j = start_j; j < end_j; ++j) {
 			for (int i = 0; i < b; ++i) {
 				int iteration = 0;
 				double x = 0.0;
@@ -59,7 +62,7 @@ int main () {
 					x = xtemp;
 				    iteration = iteration + 1;
 				}
-				double sir = 69;
+				double sir = 100;
 				image[j][i][2] = (((double)iteration/sir))*255; 
 			}
 		}
@@ -67,26 +70,27 @@ int main () {
 	}
 
 	pthread_t threads[CORENUM];
+	t_arg argumenti[CORENUM];
 
 	for (int t=0; t < CORENUM; t++) {
-			argumenti.tid = t;
-		    pthread_create(&threads[t], NULL, draw_t, &argumenti);
+		argumenti[t].tid = t;
+		argumenti[t].a = a;
+		if (pthread_create(&threads[t], NULL, draw_t, &argumenti[t]) != 0) {
+			printf ("error creating threads\n");
+			return 1;
+		}
 	}	
 
-	for (int t=0; t < CORENUM; t++) {
+	for (int t=0; t < CORENUM; ++t) {
 		    pthread_join(threads[t], NULL);
 	}	
-
 	
 	/* print image */
 	for (int j = 0; j < a; ++j) {
 		for (int i = 0; i < b; ++i) {
-				(void) fwrite(image[j][i], 1, 3, fp);
+			(void) fwrite(image[j][i], 1, 3, fp);
 		}
 	}
 	(void) fclose(fp);
 	return 0;
 }
-//		printf("\r%0.1f%% done", (double)j/(double)a*100);
-//	double y_min = -0.0017393, y_max = -0.0017386; 
-//	double x_min = -1.768779, x_max = -1.768778;
