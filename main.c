@@ -9,8 +9,8 @@
 #define CORENUM 256 
 
 int main () {
-	double y_min = 0, y_max = 1.12; 
-	double x_min = -5, x_max = 0.5;
+	double y_min = -1.12, y_max = 1.12; 
+	double x_min = -2, x_max = 0.47;
 
 	double x_diff = fabs(x_min - x_max);
 	double y_diff = fabs(y_min - y_max);
@@ -40,6 +40,7 @@ int main () {
 		int tid;
 		int a;
 	}t_arg;
+
 
 	void *draw_t (void* arg) { 
 		t_arg* argumenti = (t_arg*) arg;
